@@ -111,6 +111,12 @@ struct ScheduleRowView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
+
+                    if schedule.lockScreen {
+                        Label("Lock screen", systemImage: "lock.fill")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
             
@@ -156,6 +162,7 @@ struct AddScheduleView: View {
     @State private var warningMinutes: Int = 5
     @State private var repeatDays: Set<Int> = []
     @State private var isOneTime = false
+    @State private var lockScreen = false
     
     var body: some View {
         NavigationView {
@@ -221,6 +228,10 @@ struct AddScheduleView: View {
                             .foregroundColor(.secondary)
                     }
                 }
+
+                Section("Actions") {
+                    Toggle("Lock screen when triggered", isOn: $lockScreen)
+                }
             }
             .navigationTitle("New Schedule")
             .navigationBarTitleDisplayMode(.inline)
@@ -249,9 +260,10 @@ struct AddScheduleView: View {
             isEnabled: true,
             repeatDays: isOneTime ? [] : repeatDays,
             warningMinutes: warningMinutes,
-            isOneTime: isOneTime
+            isOneTime: isOneTime,
+            lockScreen: lockScreen
         )
-        
+
         appModel.addSchedule(schedule)
         dismiss()
     }
@@ -267,7 +279,8 @@ struct EditScheduleView: View {
     @State private var repeatDays: Set<Int>
     @State private var isOneTime: Bool
     @State private var isEnabled: Bool
-    
+    @State private var lockScreen: Bool
+
     init(schedule: AppSchedule) {
         self.schedule = schedule
         _quitTime = State(initialValue: schedule.quitTime)
@@ -275,6 +288,7 @@ struct EditScheduleView: View {
         _repeatDays = State(initialValue: schedule.repeatDays)
         _isOneTime = State(initialValue: schedule.isOneTime)
         _isEnabled = State(initialValue: schedule.isEnabled)
+        _lockScreen = State(initialValue: schedule.lockScreen)
     }
     
     var body: some View {
@@ -316,6 +330,10 @@ struct EditScheduleView: View {
                 Section("Warning") {
                     Stepper("Warning \(warningMinutes) minutes before", value: $warningMinutes, in: 0...60)
                 }
+
+                Section("Actions") {
+                    Toggle("Lock screen when triggered", isOn: $lockScreen)
+                }
             }
             .navigationTitle("Edit Schedule")
             .navigationBarTitleDisplayMode(.inline)
@@ -340,7 +358,8 @@ struct EditScheduleView: View {
         updatedSchedule.repeatDays = isOneTime ? [] : repeatDays
         updatedSchedule.isOneTime = isOneTime
         updatedSchedule.isEnabled = isEnabled
-        
+        updatedSchedule.lockScreen = lockScreen
+
         appModel.updateSchedule(updatedSchedule)
         dismiss()
     }
