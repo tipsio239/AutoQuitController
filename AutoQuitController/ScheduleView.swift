@@ -206,7 +206,7 @@ struct AddScheduleView: View {
     @State private var shutdownComputer = false
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section("App") {
                     Picker("Select App", selection: $selectedApp) {
@@ -229,14 +229,6 @@ struct AddScheduleView: View {
                     DatePicker("Quit Time", selection: $quitTime, displayedComponents: .hourAndMinute)
 
                     Toggle("One-time schedule", isOn: $isOneTime)
-
-                    Toggle("Shutdown computer after quitting", isOn: $shutdownComputer)
-
-                    if shutdownComputer {
-                        Text("Requires administrator privileges to complete system shutdown.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
 
                     if !isOneTime {
                         VStack(alignment: .leading, spacing: 8) {
@@ -289,7 +281,14 @@ struct AddScheduleView: View {
                         }
 
                     if warningsEnabled {
-                        Stepper("Warning \(warningMinutes) minutes before", value: $warningMinutes, in: 1...60)
+                        HStack(spacing: 8) {
+                            Text("Warning minutes before")
+                            Stepper(value: $warningMinutes, in: 1...60) {
+                                Text("\(warningMinutes)")
+                                    .frame(minWidth: 30)
+                            }
+                            .frame(maxWidth: 100)
+                        }
                     } else {
                         Text("No warning will be shown")
                             .font(.caption)
@@ -299,8 +298,18 @@ struct AddScheduleView: View {
 
                 Section("Actions") {
                     Toggle("Lock screen when triggered", isOn: $lockScreen)
+                    
+                    Toggle("Shutdown computer after quitting", isOn: $shutdownComputer)
+                    
+                    if shutdownComputer {
+                        Text("Requires administrator privileges to complete system shutdown.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding(.leading, 20)
+                    }
                 }
             }
+            .formStyle(.grouped)
             .scrollContentBackground(.hidden)
             .navigationTitle("New Schedule")
             .toolbar {
@@ -315,7 +324,7 @@ struct AddScheduleView: View {
                 }
             }
         }
-        .frame(width: 500, height: 500)
+        .frame(width: 600, height: 500)
         .background(Color(nsColor: .windowBackgroundColor))
     }
     
@@ -376,7 +385,7 @@ struct EditScheduleView: View {
         let runningApps = appModel.getRunningApps()
         let availableApps = availableApps(from: runningApps)
 
-        NavigationView {
+        NavigationStack {
             Form {
                 Section("App") {
                     Picker("Select App", selection: $selectedApp) {
@@ -409,6 +418,7 @@ struct EditScheduleView: View {
                         Text("Requires administrator privileges to complete system shutdown.")
                             .font(.caption)
                             .foregroundColor(.secondary)
+                            .padding(.leading, 20)
                     }
 
                     if !isOneTime {
@@ -448,7 +458,14 @@ struct EditScheduleView: View {
                         }
 
                     if warningsEnabled {
-                        Stepper("Warning \(warningMinutes) minutes before", value: $warningMinutes, in: 1...60)
+                        HStack(spacing: 8) {
+                            Text("Warning minutes before")
+                            Stepper(value: $warningMinutes, in: 1...60) {
+                                Text("\(warningMinutes)")
+                                    .frame(minWidth: 30)
+                            }
+                            .frame(maxWidth: 100)
+                        }
                     } else {
                         Text("No warning will be shown")
                             .font(.caption)
@@ -458,8 +475,18 @@ struct EditScheduleView: View {
 
                 Section("Actions") {
                     Toggle("Lock screen when triggered", isOn: $lockScreen)
+                    
+                    Toggle("Shutdown computer after quitting", isOn: $shutdownComputer)
+                    
+                    if shutdownComputer {
+                        Text("Requires administrator privileges to complete system shutdown.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding(.leading, 20)
+                    }
                 }
             }
+            .formStyle(.grouped)
             .scrollContentBackground(.hidden)
             .navigationTitle("Edit Schedule")
             .toolbar {
@@ -473,7 +500,7 @@ struct EditScheduleView: View {
                 }
             }
         }
-        .frame(width: 500, height: 500)
+        .frame(width: 600, height: 500)
         .background(Color(nsColor: .windowBackgroundColor))
     }
     
