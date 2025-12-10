@@ -13,50 +13,82 @@ struct ScheduleView: View {
     @State private var selectedSchedule: AppSchedule?
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text("Scheduled Quits")
-                    .font(.title2)
-                    .bold()
-                
+                    .font(.title2.weight(.semibold))
+                Text("Organize recurring quits with clean cards and clear sections.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+
+            HStack {
                 Spacer()
-                
                 Button(action: { showingAddSchedule = true }) {
                     Label("Add Schedule", systemImage: "plus.circle.fill")
+                        .fontWeight(.semibold)
+                        .padding(.horizontal, 4)
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(.accentColor)
             }
-            
-            if appModel.schedules.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "clock.badge.questionmark")
-                        .font(.system(size: 48))
-                        .foregroundColor(.secondary)
-                    Text("No schedules yet")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
-                    Text("Add a schedule to automatically quit apps at specific times")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 40)
-            } else {
-                List {
-                    ForEach(appModel.schedules) { schedule in
-                        ScheduleRowView(schedule: schedule)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                selectedSchedule = schedule
-                            }
+
+            Group {
+                if appModel.schedules.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "clock.badge.questionmark")
+                            .font(.system(size: 48))
+                            .foregroundColor(.secondary)
+                        Text("No schedules yet")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        Text("Add a schedule to automatically quit apps at specific times")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
                     }
-                    .onDelete(perform: deleteSchedules)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 32)
+                    .padding(.horizontal, 12)
+                    .background(Color(nsColor: .textBackgroundColor))
+                    .cornerRadius(14)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                    )
+                } else {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Upcoming")
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+
+                        List {
+                            ForEach(appModel.schedules) { schedule in
+                                ScheduleRowView(schedule: schedule)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        selectedSchedule = schedule
+                                    }
+                                    .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
+                            }
+                            .onDelete(perform: deleteSchedules)
+                        }
+                        .listStyle(.inset)
+                        .scrollContentBackground(.hidden)
+                        .frame(minHeight: 220)
+                    }
+                    .padding(16)
+                    .background(Color(nsColor: .textBackgroundColor))
+                    .cornerRadius(14)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                    )
                 }
-                .listStyle(.inset)
             }
         }
-        .padding()
+        .padding(20)
         .sheet(isPresented: $showingAddSchedule) {
             AddScheduleView()
                 .environmentObject(appModel)
@@ -223,7 +255,8 @@ struct AddScheduleView: View {
                                     repeatDays = [0, 1, 2, 3, 4, 5, 6]
                                 }
                             }
-                            .buttonStyle(.bordered)
+                            .buttonStyle(.borderedProminent)
+                            .tint(.accentColor)
                         }
                     }
                 }
@@ -237,6 +270,7 @@ struct AddScheduleView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
             .navigationTitle("New Schedule")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -252,6 +286,7 @@ struct AddScheduleView: View {
             }
         }
         .frame(width: 500, height: 500)
+        .background(Color(nsColor: .windowBackgroundColor))
     }
     
     private func addSchedule() {
@@ -343,6 +378,7 @@ struct EditScheduleView: View {
                     Stepper("Warning \(warningMinutes) minutes before", value: $warningMinutes, in: 0...60)
                 }
             }
+            .scrollContentBackground(.hidden)
             .navigationTitle("Edit Schedule")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -357,6 +393,7 @@ struct EditScheduleView: View {
             }
         }
         .frame(width: 500, height: 500)
+        .background(Color(nsColor: .windowBackgroundColor))
     }
     
     private func saveSchedule() {

@@ -225,6 +225,7 @@ class ScheduleService: ObservableObject {
         }
 
         return geteuid() == 0
+        FileManager.default.isExecutableFile(atPath: "/sbin/shutdown") && geteuid() == 0
     }
 
     private func requestSystemShutdown(reason: String) -> Bool {
@@ -245,6 +246,10 @@ class ScheduleService: ObservableObject {
             }
 
             return process.terminationStatus == 0
+
+        do {
+            try process.run()
+            return true
         } catch {
             print("Failed to request shutdown: \(error.localizedDescription)")
             return false
