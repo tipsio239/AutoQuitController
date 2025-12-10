@@ -11,7 +11,7 @@ import Combine
 
 // MARK: - Schedule Model
 struct AppSchedule: Identifiable, Codable {
-    var id = UUID()
+    var id: UUID
     var appBundleId: String
     var appName: String
     var quitTime: Date
@@ -22,7 +22,19 @@ struct AppSchedule: Identifiable, Codable {
     var lockScreen: Bool // If true, lock the screen when schedule triggers
     var shutdownComputer: Bool
 
-    init(appBundleId: String, appName: String, quitTime: Date, isEnabled: Bool = true, repeatDays: Set<Int> = [], warningMinutes: Int = 5, isOneTime: Bool = false, lockScreen: Bool = false, shutdownComputer: Bool = false) {
+    init(
+        id: UUID = UUID(),
+        appBundleId: String,
+        appName: String,
+        quitTime: Date,
+        isEnabled: Bool = true,
+        repeatDays: Set<Int> = [],
+        warningMinutes: Int = 5,
+        isOneTime: Bool = false,
+        lockScreen: Bool = false,
+        shutdownComputer: Bool = false
+    ) {
+        self.id = id
         self.appBundleId = appBundleId
         self.appName = appName
         self.quitTime = quitTime
@@ -50,16 +62,18 @@ struct AppSchedule: Identifiable, Codable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
-        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
-        appBundleId = try container.decode(String.self, forKey: .appBundleId)
-        appName = try container.decode(String.self, forKey: .appName)
-        quitTime = try container.decode(Date.self, forKey: .quitTime)
-        isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
-        repeatDays = try container.decodeIfPresent(Set<Int>.self, forKey: .repeatDays) ?? []
-        warningMinutes = try container.decodeIfPresent(Int.self, forKey: .warningMinutes) ?? 5
-        isOneTime = try container.decodeIfPresent(Bool.self, forKey: .isOneTime) ?? false
-        lockScreen = try container.decodeIfPresent(Bool.self, forKey: .lockScreen) ?? false
-        shutdownComputer = try container.decodeIfPresent(Bool.self, forKey: .shutdownComputer) ?? false
+        self.init(
+            id: try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID(),
+            appBundleId: try container.decode(String.self, forKey: .appBundleId),
+            appName: try container.decode(String.self, forKey: .appName),
+            quitTime: try container.decode(Date.self, forKey: .quitTime),
+            isEnabled: try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true,
+            repeatDays: try container.decodeIfPresent(Set<Int>.self, forKey: .repeatDays) ?? [],
+            warningMinutes: try container.decodeIfPresent(Int.self, forKey: .warningMinutes) ?? 5,
+            isOneTime: try container.decodeIfPresent(Bool.self, forKey: .isOneTime) ?? false,
+            lockScreen: try container.decodeIfPresent(Bool.self, forKey: .lockScreen) ?? false,
+            shutdownComputer: try container.decodeIfPresent(Bool.self, forKey: .shutdownComputer) ?? false
+        )
     }
 
     func encode(to encoder: Encoder) throws {
