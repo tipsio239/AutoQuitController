@@ -225,6 +225,12 @@ struct AddScheduleView: View {
 
                     Toggle("Shutdown computer after quitting", isOn: $shutdownComputer)
 
+                    if shutdownComputer {
+                        Text("Requires administrator privileges to complete system shutdown.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
                     if !isOneTime {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Repeat Days")
@@ -370,6 +376,12 @@ struct EditScheduleView: View {
                     Toggle("One-time schedule", isOn: $isOneTime)
 
                     Toggle("Shutdown computer after quitting", isOn: $shutdownComputer)
+
+                    if shutdownComputer {
+                        Text("Requires administrator privileges to complete system shutdown.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
 
                     if !isOneTime {
                         VStack(alignment: .leading, spacing: 8) {

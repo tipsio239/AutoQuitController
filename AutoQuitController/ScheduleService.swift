@@ -220,6 +220,11 @@ class ScheduleService: ObservableObject {
     }
 
     private func hasShutdownPrivileges() -> Bool {
+        guard FileManager.default.isExecutableFile(atPath: "/sbin/shutdown") else {
+            return false
+        }
+
+        return geteuid() == 0
         FileManager.default.isExecutableFile(atPath: "/sbin/shutdown") && geteuid() == 0
     }
 
@@ -227,6 +232,20 @@ class ScheduleService: ObservableObject {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/sbin/shutdown")
         process.arguments = ["-h", "now", reason]
+        let outputPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = outputPipe
+
+        do {
+            try process.run()
+            process.waitUntilExit()
+
+            let data = outputPipe.fileHandleForReading.readDataToEndOfFile()
+            if !data.isEmpty, let message = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
+                print("Shutdown output: \(message)")
+            }
+
+            return process.terminationStatus == 0
 
         do {
             try process.run()
