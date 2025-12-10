@@ -20,42 +20,59 @@ struct AppListView: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text("Running Apps")
-                    .font(.title2)
-                    .bold()
-                
-                Spacer()
-                
+                    .font(.title2.weight(.semibold))
+                Text("Manage whitelist choices with clear sections and modern cards.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+
+            HStack {
+                TextField("Search apps...", text: $searchText)
+                    .textFieldStyle(.roundedBorder)
+
                 Button(action: refreshApps) {
                     Label("Refresh", systemImage: "arrow.clockwise")
+                        .labelStyle(.titleAndIcon)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.accentColor)
+            }
+
+            Group {
+                if filteredApps.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "app.badge")
+                            .font(.system(size: 48))
+                            .foregroundColor(.secondary)
+                        Text("No apps found")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 32)
+                } else {
+                    List(filteredApps) { app in
+                        AppRowView(app: app)
+                            .environmentObject(appModel)
+                            .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
+                    }
+                    .listStyle(.inset)
+                    .scrollContentBackground(.hidden)
                 }
             }
-            
-            TextField("Search apps...", text: $searchText)
-                .textFieldStyle(.roundedBorder)
-            
-            if filteredApps.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "app.badge")
-                        .font(.system(size: 48))
-                        .foregroundColor(.secondary)
-                    Text("No apps found")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 40)
-            } else {
-                List(filteredApps) { app in
-                    AppRowView(app: app)
-                        .environmentObject(appModel)
-                }
-                .listStyle(.inset)
-            }
+            .padding(16)
+            .frame(maxWidth: .infinity)
+            .background(Color(nsColor: .textBackgroundColor))
+            .cornerRadius(14)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+            )
         }
-        .padding()
+        .padding(20)
         .onAppear {
             refreshApps()
         }
@@ -102,8 +119,8 @@ struct AppRowView: View {
                     systemImage: isWhitelisted ? "shield.checkmark.fill" : "shield"
                 )
             }
-            .buttonStyle(.bordered)
-            .tint(isWhitelisted ? .orange : .blue)
+            .buttonStyle(.borderedProminent)
+            .tint(isWhitelisted ? .orange : .accentColor)
         }
         .padding(.vertical, 4)
     }
