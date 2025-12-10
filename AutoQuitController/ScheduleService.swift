@@ -136,7 +136,7 @@ class ScheduleService: ObservableObject {
         if schedule.lockScreen {
             triggerLockScreen()
         }
-        
+
         // Trigger shutdown if configured
         if schedule.shutdownComputer {
             handleShutdownRequest(for: schedule, quitSuccess: success)
@@ -261,14 +261,12 @@ class ScheduleService: ObservableObject {
     }
 
     private func hasShutdownPrivileges() -> Bool {
-        guard FileManager.default.isExecutableFile(atPath: "/sbin/shutdown") else {
-            return false
-        }
-
-        return geteuid() == 0
+        FileManager.default.isExecutableFile(atPath: "/sbin/shutdown") && geteuid() == 0
     }
 
     private func requestSystemShutdown(reason: String) -> Bool {
+        guard hasShutdownPrivileges() else { return false }
+
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/sbin/shutdown")
         process.arguments = ["-h", "now", reason]
