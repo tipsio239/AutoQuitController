@@ -22,6 +22,9 @@ struct AppSchedule: Identifiable, Codable {
     var lockScreen: Bool // If true, lock the screen when schedule triggers
 
     init(appBundleId: String, appName: String, quitTime: Date, isEnabled: Bool = true, repeatDays: Set<Int> = [], warningMinutes: Int = 5, isOneTime: Bool = false, lockScreen: Bool = false) {
+    var shutdownComputer: Bool
+
+    init(appBundleId: String, appName: String, quitTime: Date, isEnabled: Bool = true, repeatDays: Set<Int> = [], warningMinutes: Int = 5, isOneTime: Bool = false, shutdownComputer: Bool = false) {
         self.appBundleId = appBundleId
         self.appName = appName
         self.quitTime = quitTime
@@ -30,6 +33,7 @@ struct AppSchedule: Identifiable, Codable {
         self.warningMinutes = warningMinutes
         self.isOneTime = isOneTime
         self.lockScreen = lockScreen
+        self.shutdownComputer = shutdownComputer
     }
 
     enum CodingKeys: String, CodingKey {
@@ -42,10 +46,12 @@ struct AppSchedule: Identifiable, Codable {
         case warningMinutes
         case isOneTime
         case lockScreen
+        case shutdownComputer
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+
         id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
         appBundleId = try container.decode(String.self, forKey: .appBundleId)
         appName = try container.decode(String.self, forKey: .appName)
@@ -55,6 +61,11 @@ struct AppSchedule: Identifiable, Codable {
         warningMinutes = try container.decode(Int.self, forKey: .warningMinutes)
         isOneTime = try container.decode(Bool.self, forKey: .isOneTime)
         lockScreen = try container.decodeIfPresent(Bool.self, forKey: .lockScreen) ?? false
+        isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
+        repeatDays = try container.decodeIfPresent(Set<Int>.self, forKey: .repeatDays) ?? []
+        warningMinutes = try container.decodeIfPresent(Int.self, forKey: .warningMinutes) ?? 5
+        isOneTime = try container.decodeIfPresent(Bool.self, forKey: .isOneTime) ?? false
+        shutdownComputer = try container.decodeIfPresent(Bool.self, forKey: .shutdownComputer) ?? false
     }
 
     func encode(to encoder: Encoder) throws {
@@ -68,6 +79,7 @@ struct AppSchedule: Identifiable, Codable {
         try container.encode(warningMinutes, forKey: .warningMinutes)
         try container.encode(isOneTime, forKey: .isOneTime)
         try container.encode(lockScreen, forKey: .lockScreen)
+        try container.encode(shutdownComputer, forKey: .shutdownComputer)
     }
 }
 
@@ -223,7 +235,7 @@ class AppModel: ObservableObject {
 }
 
 // MARK: - Running App Info
-struct RunningApp: Identifiable {
+struct RunningApp: Identifiable, Hashable {
     let id: String
     let bundleId: String
     let name: String
@@ -235,30 +247,40 @@ struct RunningApp: Identifiable {
         self.name = name
         self.icon = icon
     }
+
+    static func == (lhs: RunningApp, rhs: RunningApp) -> Bool {
+        lhs.bundleId == rhs.bundleId
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(bundleId)
+    }
 }
 
 extension AppModel {
     func getRunningApps() -> [RunningApp] {
         let workspace = NSWorkspace.shared
         let runningApps = workspace.runningApplications
-        
-        return runningApps
-            .filter { app in
-                // Filter out system apps and this app itself
-                guard let bundleId = app.bundleIdentifier,
-                      bundleId != "com.tipsio239.AutoQuitController",
-                      app.activationPolicy == .regular else {
-                    return false
-                }
-                return true
+
+        var uniqueApps: [String: RunningApp] = [:]
+
+        for app in runningApps {
+            // Filter out system apps and this app itself
+            guard let bundleId = app.bundleIdentifier,
+                  bundleId != "com.tipsio239.AutoQuitController",
+                  app.activationPolicy == .regular else {
+                continue
             }
-            .map { app in
-                RunningApp(
-                    bundleId: app.bundleIdentifier ?? "",
-                    name: app.localizedName ?? "Unknown",
-                    icon: app.icon
-                )
-            }
+
+            uniqueApps[bundleId] = RunningApp(
+                bundleId: bundleId,
+                name: app.localizedName ?? "Unknown",
+                icon: app.icon
+            )
+        }
+
+        return uniqueApps
+            .values
             .sorted { $0.name < $1.name }
     }
 }

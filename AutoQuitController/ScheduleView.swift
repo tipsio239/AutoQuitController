@@ -13,50 +13,82 @@ struct ScheduleView: View {
     @State private var selectedSchedule: AppSchedule?
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text("Scheduled Quits")
-                    .font(.title2)
-                    .bold()
-                
+                    .font(.title2.weight(.semibold))
+                Text("Organize recurring quits with clean cards and clear sections.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+
+            HStack {
                 Spacer()
-                
                 Button(action: { showingAddSchedule = true }) {
                     Label("Add Schedule", systemImage: "plus.circle.fill")
+                        .fontWeight(.semibold)
+                        .padding(.horizontal, 4)
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(.accentColor)
             }
-            
-            if appModel.schedules.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "clock.badge.questionmark")
-                        .font(.system(size: 48))
-                        .foregroundColor(.secondary)
-                    Text("No schedules yet")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
-                    Text("Add a schedule to automatically quit apps at specific times")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 40)
-            } else {
-                List {
-                    ForEach(appModel.schedules) { schedule in
-                        ScheduleRowView(schedule: schedule)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                selectedSchedule = schedule
-                            }
+
+            Group {
+                if appModel.schedules.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "clock.badge.questionmark")
+                            .font(.system(size: 48))
+                            .foregroundColor(.secondary)
+                        Text("No schedules yet")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        Text("Add a schedule to automatically quit apps at specific times")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
                     }
-                    .onDelete(perform: deleteSchedules)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 32)
+                    .padding(.horizontal, 12)
+                    .background(Color(nsColor: .textBackgroundColor))
+                    .cornerRadius(14)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                    )
+                } else {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Upcoming")
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+
+                        List {
+                            ForEach(appModel.schedules) { schedule in
+                                ScheduleRowView(schedule: schedule)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        selectedSchedule = schedule
+                                    }
+                                    .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
+                            }
+                            .onDelete(perform: deleteSchedules)
+                        }
+                        .listStyle(.inset)
+                        .scrollContentBackground(.hidden)
+                        .frame(minHeight: 220)
+                    }
+                    .padding(16)
+                    .background(Color(nsColor: .textBackgroundColor))
+                    .cornerRadius(14)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                    )
                 }
-                .listStyle(.inset)
             }
         }
-        .padding()
+        .padding(20)
         .sheet(isPresented: $showingAddSchedule) {
             AddScheduleView()
                 .environmentObject(appModel)
@@ -114,6 +146,8 @@ struct ScheduleRowView: View {
 
                     if schedule.lockScreen {
                         Label("Lock screen", systemImage: "lock.fill")
+                    if schedule.shutdownComputer {
+                        Label("Shutdown", systemImage: "power")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -160,9 +194,12 @@ struct AddScheduleView: View {
     @State private var selectedApp: RunningApp?
     @State private var quitTime = Date()
     @State private var warningMinutes: Int = 5
+    @State private var lastWarningMinutes: Int = 5
+    @State private var warningsEnabled: Bool = true
     @State private var repeatDays: Set<Int> = []
     @State private var isOneTime = false
     @State private var lockScreen = false
+    @State private var shutdownComputer = false
     
     var body: some View {
         NavigationView {
@@ -186,9 +223,17 @@ struct AddScheduleView: View {
                 
                 Section("Schedule") {
                     DatePicker("Quit Time", selection: $quitTime, displayedComponents: .hourAndMinute)
-                    
+
                     Toggle("One-time schedule", isOn: $isOneTime)
-                    
+
+                    Toggle("Shutdown computer after quitting", isOn: $shutdownComputer)
+
+                    if shutdownComputer {
+                        Text("Requires administrator privileges to complete system shutdown.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
                     if !isOneTime {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Repeat Days")
@@ -215,14 +260,33 @@ struct AddScheduleView: View {
                                     repeatDays = [0, 1, 2, 3, 4, 5, 6]
                                 }
                             }
-                            .buttonStyle(.bordered)
+                            .buttonStyle(.borderedProminent)
+                            .tint(.accentColor)
                         }
                     }
                 }
                 
                 Section("Warning") {
-                    Stepper("Warning \(warningMinutes) minutes before", value: $warningMinutes, in: 0...60)
-                    if warningMinutes == 0 {
+                    Toggle("Enable warning", isOn: $warningsEnabled)
+                        .onChange(of: warningsEnabled) { newValue in
+                            if newValue {
+                                let restoredMinutes = lastWarningMinutes > 0 ? lastWarningMinutes : 5
+                                warningMinutes = restoredMinutes
+                                lastWarningMinutes = restoredMinutes
+                            } else {
+                                lastWarningMinutes = warningMinutes > 0 ? warningMinutes : (lastWarningMinutes > 0 ? lastWarningMinutes : 5)
+                                warningMinutes = 0
+                            }
+                        }
+                        .onChange(of: warningMinutes) { newValue in
+                            if warningsEnabled && newValue > 0 {
+                                lastWarningMinutes = newValue
+                            }
+                        }
+
+                    if warningsEnabled {
+                        Stepper("Warning \(warningMinutes) minutes before", value: $warningMinutes, in: 1...60)
+                    } else {
                         Text("No warning will be shown")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -233,6 +297,7 @@ struct AddScheduleView: View {
                     Toggle("Lock screen when triggered", isOn: $lockScreen)
                 }
             }
+            .scrollContentBackground(.hidden)
             .navigationTitle("New Schedule")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -248,6 +313,7 @@ struct AddScheduleView: View {
             }
         }
         .frame(width: 500, height: 500)
+        .background(Color(nsColor: .windowBackgroundColor))
     }
     
     private func addSchedule() {
@@ -262,6 +328,11 @@ struct AddScheduleView: View {
             warningMinutes: warningMinutes,
             isOneTime: isOneTime,
             lockScreen: lockScreen
+            warningMinutes: warningsEnabled ? warningMinutes : 0,
+            isOneTime: isOneTime
+            warningMinutes: warningMinutes,
+            isOneTime: isOneTime,
+            shutdownComputer: shutdownComputer
         )
 
         appModel.addSchedule(schedule)
@@ -273,42 +344,74 @@ struct EditScheduleView: View {
     let schedule: AppSchedule
     @EnvironmentObject var appModel: AppModel
     @Environment(\.dismiss) var dismiss
-    
+
+    @State private var selectedApp: RunningApp?
     @State private var quitTime: Date
     @State private var warningMinutes: Int
+    @State private var lastWarningMinutes: Int
+    @State private var warningsEnabled: Bool
     @State private var repeatDays: Set<Int>
     @State private var isOneTime: Bool
     @State private var isEnabled: Bool
     @State private var lockScreen: Bool
 
+
+    @State private var shutdownComputer: Bool
+    
     init(schedule: AppSchedule) {
         self.schedule = schedule
+        _selectedApp = State(initialValue: RunningApp(bundleId: schedule.appBundleId, name: schedule.appName, icon: nil))
         _quitTime = State(initialValue: schedule.quitTime)
-        _warningMinutes = State(initialValue: schedule.warningMinutes)
+        let initialWarningMinutes = schedule.warningMinutes > 0 ? schedule.warningMinutes : 5
+        _warningMinutes = State(initialValue: initialWarningMinutes)
+        _lastWarningMinutes = State(initialValue: initialWarningMinutes)
+        _warningsEnabled = State(initialValue: schedule.warningMinutes > 0)
         _repeatDays = State(initialValue: schedule.repeatDays)
         _isOneTime = State(initialValue: schedule.isOneTime)
         _isEnabled = State(initialValue: schedule.isEnabled)
         _lockScreen = State(initialValue: schedule.lockScreen)
+        _shutdownComputer = State(initialValue: schedule.shutdownComputer)
     }
-    
+
     var body: some View {
+        let runningApps = appModel.getRunningApps()
+        let availableApps = availableApps(from: runningApps)
+
         NavigationView {
             Form {
                 Section("App") {
-                    HStack {
-                        Text(schedule.appName)
-                            .foregroundColor(.secondary)
-                        Spacer()
+                    Picker("Select App", selection: $selectedApp) {
+                        Text("Choose an app...").tag(nil as RunningApp?)
+                        ForEach(availableApps) { app in
+                            HStack {
+                                if let icon = app.icon {
+                                    Image(nsImage: icon)
+                                        .resizable()
+                                        .frame(width: 16, height: 16)
+                                }
+                                Text(app.name)
+                            }
+                            .tag(app as RunningApp?)
+                        }
                     }
+                    .disabled(runningApps.isEmpty)
                 }
-                
+
                 Section("Schedule") {
                     DatePicker("Quit Time", selection: $quitTime, displayedComponents: .hourAndMinute)
-                    
+
                     Toggle("Enabled", isOn: $isEnabled)
-                    
+
                     Toggle("One-time schedule", isOn: $isOneTime)
-                    
+
+                    Toggle("Shutdown computer after quitting", isOn: $shutdownComputer)
+
+                    if shutdownComputer {
+                        Text("Requires administrator privileges to complete system shutdown.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
                     if !isOneTime {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Repeat Days")
@@ -328,13 +431,37 @@ struct EditScheduleView: View {
                 }
                 
                 Section("Warning") {
-                    Stepper("Warning \(warningMinutes) minutes before", value: $warningMinutes, in: 0...60)
+                    Toggle("Enable warning", isOn: $warningsEnabled)
+                        .onChange(of: warningsEnabled) { newValue in
+                            if newValue {
+                                let restoredMinutes = lastWarningMinutes > 0 ? lastWarningMinutes : 5
+                                warningMinutes = restoredMinutes
+                                lastWarningMinutes = restoredMinutes
+                            } else {
+                                lastWarningMinutes = warningMinutes > 0 ? warningMinutes : (lastWarningMinutes > 0 ? lastWarningMinutes : 5)
+                                warningMinutes = 0
+                            }
+                        }
+                        .onChange(of: warningMinutes) { newValue in
+                            if warningsEnabled && newValue > 0 {
+                                lastWarningMinutes = newValue
+                            }
+                        }
+
+                    if warningsEnabled {
+                        Stepper("Warning \(warningMinutes) minutes before", value: $warningMinutes, in: 1...60)
+                    } else {
+                        Text("No warning will be shown")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
 
                 Section("Actions") {
                     Toggle("Lock screen when triggered", isOn: $lockScreen)
                 }
             }
+            .scrollContentBackground(.hidden)
             .navigationTitle("Edit Schedule")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -349,19 +476,34 @@ struct EditScheduleView: View {
             }
         }
         .frame(width: 500, height: 500)
+        .background(Color(nsColor: .windowBackgroundColor))
     }
     
     private func saveSchedule() {
         var updatedSchedule = schedule
+        if let app = selectedApp {
+            updatedSchedule.appBundleId = app.bundleId
+            updatedSchedule.appName = app.name
+        }
         updatedSchedule.quitTime = quitTime
-        updatedSchedule.warningMinutes = warningMinutes
+        updatedSchedule.warningMinutes = warningsEnabled ? warningMinutes : 0
         updatedSchedule.repeatDays = isOneTime ? [] : repeatDays
         updatedSchedule.isOneTime = isOneTime
         updatedSchedule.isEnabled = isEnabled
         updatedSchedule.lockScreen = lockScreen
 
+        updatedSchedule.shutdownComputer = shutdownComputer
+        
         appModel.updateSchedule(updatedSchedule)
         dismiss()
+    }
+
+    private func availableApps(from runningApps: [RunningApp]) -> [RunningApp] {
+        var apps = runningApps
+        if !apps.contains(where: { $0.bundleId == schedule.appBundleId }) {
+            apps.insert(RunningApp(bundleId: schedule.appBundleId, name: schedule.appName, icon: nil), at: 0)
+        }
+        return apps
     }
 }
 
