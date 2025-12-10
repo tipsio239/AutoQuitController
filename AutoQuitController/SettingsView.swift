@@ -9,26 +9,30 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var appModel: AppModel
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Settings")
-                .font(.title2)
-                .bold()
-            
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Settings")
+                    .font(.title2.weight(.semibold))
+                Text("Tune notifications, pause rules, and review recent actions.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+
             Form {
                 Section("General") {
                     Toggle("Pause all schedules", isOn: Binding(
                         get: { appModel.isPaused },
                         set: { _ in appModel.togglePause() }
                     ))
-                    
+
                     Toggle("Show notifications", isOn: Binding(
                         get: { appModel.showNotifications },
                         set: { _ in appModel.toggleNotifications() }
                     ))
                 }
-                
+
                 Section("Quit Logs") {
                     if appModel.quitLogs.isEmpty {
                         Text("No quit logs yet")
@@ -39,17 +43,27 @@ struct SettingsView: View {
                                 LogRowView(log: log)
                             }
                         }
+                        .scrollContentBackground(.hidden)
                         .frame(height: 300)
-                        
+
                         Button("Clear Logs") {
                             appModel.clearLogs()
                         }
+                        .buttonStyle(.borderless)
                         .foregroundColor(.red)
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .padding(12)
+            .background(Color(nsColor: .textBackgroundColor))
+            .cornerRadius(14)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+            )
         }
-        .padding()
+        .padding(20)
     }
 }
 
