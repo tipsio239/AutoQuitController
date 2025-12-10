@@ -8,6 +8,7 @@
 import Foundation
 import UserNotifications
 import Combine
+import Darwin
 
 class ScheduleService: ObservableObject {
     static let shared = ScheduleService()
@@ -131,7 +132,12 @@ class ScheduleService: ObservableObject {
         if appModel.showNotifications {
             sendQuitNotification(appName: schedule.appName, success: success)
         }
-        
+
+        // Trigger shutdown if configured
+        if schedule.shutdownComputer {
+            handleShutdownRequest(for: schedule, quitSuccess: success)
+        }
+
         // Delete one-time schedules
         if schedule.isOneTime {
             appModel.deleteSchedule(schedule)
@@ -168,7 +174,95 @@ class ScheduleService: ObservableObject {
             content: content,
             trigger: nil
         )
-        
+
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    // MARK: - Shutdown Handling
+    private func handleShutdownRequest(for schedule: AppSchedule, quitSuccess: Bool) {
+        guard let appModel = appModel else { return }
+
+        guard quitSuccess else {
+            if appModel.showNotifications {
+                sendShutdownNotification(
+                    title: "Shutdown Cancelled",
+                    message: "Could not quit \(schedule.appName); shutdown will not proceed."
+                )
+            }
+            return
+        }
+
+        guard hasShutdownPrivileges() else {
+            if appModel.showNotifications {
+                sendShutdownNotification(
+                    title: "Shutdown Requires Permission",
+                    message: "AutoQuitController needs administrator privileges to shut down the computer."
+                )
+            }
+            return
+        }
+
+        let shutdownSucceeded = requestSystemShutdown(reason: "AutoQuitController schedule for \(schedule.appName)")
+
+        if appModel.showNotifications {
+            if shutdownSucceeded {
+                sendShutdownNotification(
+                    title: "Shutdown Initiated",
+                    message: "The system is shutting down after quitting \(schedule.appName)."
+                )
+            } else {
+                sendShutdownNotification(
+                    title: "Shutdown Failed",
+                    message: "Failed to request system shutdown after quitting \(schedule.appName)."
+                )
+            }
+        }
+    }
+
+    private func hasShutdownPrivileges() -> Bool {
+        guard FileManager.default.isExecutableFile(atPath: "/sbin/shutdown") else {
+            return false
+        }
+
+        return geteuid() == 0
+    }
+
+    private func requestSystemShutdown(reason: String) -> Bool {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/sbin/shutdown")
+        process.arguments = ["-h", "now", reason]
+        let outputPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = outputPipe
+
+        do {
+            try process.run()
+            process.waitUntilExit()
+
+            let data = outputPipe.fileHandleForReading.readDataToEndOfFile()
+            if !data.isEmpty, let message = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
+                print("Shutdown output: \(message)")
+            }
+
+            return process.terminationStatus == 0
+        } catch {
+            print("Failed to request shutdown: \(error.localizedDescription)")
+            return false
+        }
+    }
+
+    private func sendShutdownNotification(title: String, message: String) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = message
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "shutdown-\(UUID().uuidString)",
+            content: content,
+            trigger: nil
+        )
+
         UNUserNotificationCenter.current().add(request)
     }
 }
