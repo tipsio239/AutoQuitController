@@ -209,24 +209,26 @@ extension AppModel {
     func getRunningApps() -> [RunningApp] {
         let workspace = NSWorkspace.shared
         let runningApps = workspace.runningApplications
-        
-        return runningApps
-            .filter { app in
-                // Filter out system apps and this app itself
-                guard let bundleId = app.bundleIdentifier,
-                      bundleId != "com.tipsio239.AutoQuitController",
-                      app.activationPolicy == .regular else {
-                    return false
-                }
-                return true
+
+        var uniqueApps: [String: RunningApp] = [:]
+
+        for app in runningApps {
+            // Filter out system apps and this app itself
+            guard let bundleId = app.bundleIdentifier,
+                  bundleId != "com.tipsio239.AutoQuitController",
+                  app.activationPolicy == .regular else {
+                continue
             }
-            .map { app in
-                RunningApp(
-                    bundleId: app.bundleIdentifier ?? "",
-                    name: app.localizedName ?? "Unknown",
-                    icon: app.icon
-                )
-            }
+
+            uniqueApps[bundleId] = RunningApp(
+                bundleId: bundleId,
+                name: app.localizedName ?? "Unknown",
+                icon: app.icon
+            )
+        }
+
+        return uniqueApps
+            .values
             .sorted { $0.name < $1.name }
     }
 }
