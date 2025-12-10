@@ -330,14 +330,16 @@ struct AddScheduleView: View {
     
     private func addSchedule() {
         guard let app = selectedApp else { return }
-        
+
+        let scheduleWarningMinutes = warningsEnabled ? warningMinutes : 0
+
         let schedule = AppSchedule(
             appBundleId: app.bundleId,
             appName: app.name,
             quitTime: quitTime,
             isEnabled: true,
             repeatDays: isOneTime ? [] : repeatDays,
-            warningMinutes: warningsEnabled ? warningMinutes : 0,
+            warningMinutes: scheduleWarningMinutes,
             isOneTime: isOneTime,
             lockScreen: lockScreen,
             shutdownComputer: shutdownComputer
