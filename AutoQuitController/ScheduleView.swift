@@ -143,6 +143,12 @@ struct ScheduleRowView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
+
+                    if schedule.shutdownComputer {
+                        Label("Shutdown", systemImage: "power")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
             
@@ -188,6 +194,7 @@ struct AddScheduleView: View {
     @State private var warningMinutes: Int = 5
     @State private var repeatDays: Set<Int> = []
     @State private var isOneTime = false
+    @State private var shutdownComputer = false
     
     var body: some View {
         NavigationView {
@@ -211,9 +218,11 @@ struct AddScheduleView: View {
                 
                 Section("Schedule") {
                     DatePicker("Quit Time", selection: $quitTime, displayedComponents: .hourAndMinute)
-                    
+
                     Toggle("One-time schedule", isOn: $isOneTime)
-                    
+
+                    Toggle("Shutdown computer after quitting", isOn: $shutdownComputer)
+
                     if !isOneTime {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Repeat Days")
@@ -284,7 +293,8 @@ struct AddScheduleView: View {
             isEnabled: true,
             repeatDays: isOneTime ? [] : repeatDays,
             warningMinutes: warningMinutes,
-            isOneTime: isOneTime
+            isOneTime: isOneTime,
+            shutdownComputer: shutdownComputer
         )
         
         appModel.addSchedule(schedule)
@@ -302,6 +312,7 @@ struct EditScheduleView: View {
     @State private var repeatDays: Set<Int>
     @State private var isOneTime: Bool
     @State private var isEnabled: Bool
+    @State private var shutdownComputer: Bool
     
     init(schedule: AppSchedule) {
         self.schedule = schedule
@@ -310,6 +321,7 @@ struct EditScheduleView: View {
         _repeatDays = State(initialValue: schedule.repeatDays)
         _isOneTime = State(initialValue: schedule.isOneTime)
         _isEnabled = State(initialValue: schedule.isEnabled)
+        _shutdownComputer = State(initialValue: schedule.shutdownComputer)
     }
     
     var body: some View {
@@ -325,11 +337,13 @@ struct EditScheduleView: View {
                 
                 Section("Schedule") {
                     DatePicker("Quit Time", selection: $quitTime, displayedComponents: .hourAndMinute)
-                    
+
                     Toggle("Enabled", isOn: $isEnabled)
-                    
+
                     Toggle("One-time schedule", isOn: $isOneTime)
-                    
+
+                    Toggle("Shutdown computer after quitting", isOn: $shutdownComputer)
+
                     if !isOneTime {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Repeat Days")
@@ -377,6 +391,7 @@ struct EditScheduleView: View {
         updatedSchedule.repeatDays = isOneTime ? [] : repeatDays
         updatedSchedule.isOneTime = isOneTime
         updatedSchedule.isEnabled = isEnabled
+        updatedSchedule.shutdownComputer = shutdownComputer
         
         appModel.updateSchedule(updatedSchedule)
         dismiss()

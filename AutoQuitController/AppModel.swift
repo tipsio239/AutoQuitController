@@ -19,8 +19,9 @@ struct AppSchedule: Identifiable, Codable {
     var repeatDays: Set<Int> // 0 = Sunday, 1 = Monday, etc.
     var warningMinutes: Int // Minutes before quit to show warning
     var isOneTime: Bool // If true, schedule is deleted after execution
-    
-    init(appBundleId: String, appName: String, quitTime: Date, isEnabled: Bool = true, repeatDays: Set<Int> = [], warningMinutes: Int = 5, isOneTime: Bool = false) {
+    var shutdownComputer: Bool
+
+    init(appBundleId: String, appName: String, quitTime: Date, isEnabled: Bool = true, repeatDays: Set<Int> = [], warningMinutes: Int = 5, isOneTime: Bool = false, shutdownComputer: Bool = false) {
         self.appBundleId = appBundleId
         self.appName = appName
         self.quitTime = quitTime
@@ -28,6 +29,46 @@ struct AppSchedule: Identifiable, Codable {
         self.repeatDays = repeatDays
         self.warningMinutes = warningMinutes
         self.isOneTime = isOneTime
+        self.shutdownComputer = shutdownComputer
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case appBundleId
+        case appName
+        case quitTime
+        case isEnabled
+        case repeatDays
+        case warningMinutes
+        case isOneTime
+        case shutdownComputer
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        appBundleId = try container.decode(String.self, forKey: .appBundleId)
+        appName = try container.decode(String.self, forKey: .appName)
+        quitTime = try container.decode(Date.self, forKey: .quitTime)
+        isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
+        repeatDays = try container.decodeIfPresent(Set<Int>.self, forKey: .repeatDays) ?? []
+        warningMinutes = try container.decodeIfPresent(Int.self, forKey: .warningMinutes) ?? 5
+        isOneTime = try container.decodeIfPresent(Bool.self, forKey: .isOneTime) ?? false
+        shutdownComputer = try container.decodeIfPresent(Bool.self, forKey: .shutdownComputer) ?? false
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(appBundleId, forKey: .appBundleId)
+        try container.encode(appName, forKey: .appName)
+        try container.encode(quitTime, forKey: .quitTime)
+        try container.encode(isEnabled, forKey: .isEnabled)
+        try container.encode(repeatDays, forKey: .repeatDays)
+        try container.encode(warningMinutes, forKey: .warningMinutes)
+        try container.encode(isOneTime, forKey: .isOneTime)
+        try container.encode(shutdownComputer, forKey: .shutdownComputer)
     }
 }
 
