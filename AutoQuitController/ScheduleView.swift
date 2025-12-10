@@ -334,7 +334,8 @@ struct EditScheduleView: View {
     let schedule: AppSchedule
     @EnvironmentObject var appModel: AppModel
     @Environment(\.dismiss) var dismiss
-    
+
+    @State private var selectedApp: RunningApp?
     @State private var quitTime: Date
     @State private var warningMinutes: Int
     @State private var lastWarningMinutes: Int
@@ -342,10 +343,12 @@ struct EditScheduleView: View {
     @State private var repeatDays: Set<Int>
     @State private var isOneTime: Bool
     @State private var isEnabled: Bool
+
     @State private var shutdownComputer: Bool
     
     init(schedule: AppSchedule) {
         self.schedule = schedule
+        _selectedApp = State(initialValue: RunningApp(bundleId: schedule.appBundleId, name: schedule.appName, icon: nil))
         _quitTime = State(initialValue: schedule.quitTime)
         let initialWarningMinutes = schedule.warningMinutes > 0 ? schedule.warningMinutes : 5
         _warningMinutes = State(initialValue: initialWarningMinutes)
@@ -356,18 +359,31 @@ struct EditScheduleView: View {
         _isEnabled = State(initialValue: schedule.isEnabled)
         _shutdownComputer = State(initialValue: schedule.shutdownComputer)
     }
-    
+
     var body: some View {
+        let runningApps = appModel.getRunningApps()
+        let availableApps = availableApps(from: runningApps)
+
         NavigationView {
             Form {
                 Section("App") {
-                    HStack {
-                        Text(schedule.appName)
-                            .foregroundColor(.secondary)
-                        Spacer()
+                    Picker("Select App", selection: $selectedApp) {
+                        Text("Choose an app...").tag(nil as RunningApp?)
+                        ForEach(availableApps) { app in
+                            HStack {
+                                if let icon = app.icon {
+                                    Image(nsImage: icon)
+                                        .resizable()
+                                        .frame(width: 16, height: 16)
+                                }
+                                Text(app.name)
+                            }
+                            .tag(app as RunningApp?)
+                        }
                     }
+                    .disabled(runningApps.isEmpty)
                 }
-                
+
                 Section("Schedule") {
                     DatePicker("Quit Time", selection: $quitTime, displayedComponents: .hourAndMinute)
 
@@ -448,6 +464,10 @@ struct EditScheduleView: View {
     
     private func saveSchedule() {
         var updatedSchedule = schedule
+        if let app = selectedApp {
+            updatedSchedule.appBundleId = app.bundleId
+            updatedSchedule.appName = app.name
+        }
         updatedSchedule.quitTime = quitTime
         updatedSchedule.warningMinutes = warningsEnabled ? warningMinutes : 0
         updatedSchedule.repeatDays = isOneTime ? [] : repeatDays
@@ -457,6 +477,14 @@ struct EditScheduleView: View {
         
         appModel.updateSchedule(updatedSchedule)
         dismiss()
+    }
+
+    private func availableApps(from runningApps: [RunningApp]) -> [RunningApp] {
+        var apps = runningApps
+        if !apps.contains(where: { $0.bundleId == schedule.appBundleId }) {
+            apps.insert(RunningApp(bundleId: schedule.appBundleId, name: schedule.appName, icon: nil), at: 0)
+        }
+        return apps
     }
 }
 
