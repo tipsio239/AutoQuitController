@@ -219,9 +219,11 @@ struct AddScheduleView: View {
                     Toggle("Enable warning", isOn: $warningsEnabled)
                         .onChange(of: warningsEnabled) { newValue in
                             if newValue {
-                                warningMinutes = lastWarningMinutes
+                                let restoredMinutes = lastWarningMinutes > 0 ? lastWarningMinutes : 5
+                                warningMinutes = restoredMinutes
+                                lastWarningMinutes = restoredMinutes
                             } else {
-                                lastWarningMinutes = max(1, warningMinutes)
+                                lastWarningMinutes = warningMinutes > 0 ? warningMinutes : (lastWarningMinutes > 0 ? lastWarningMinutes : 5)
                                 warningMinutes = 0
                             }
                         }
@@ -340,9 +342,11 @@ struct EditScheduleView: View {
                     Toggle("Enable warning", isOn: $warningsEnabled)
                         .onChange(of: warningsEnabled) { newValue in
                             if newValue {
-                                warningMinutes = lastWarningMinutes
+                                let restoredMinutes = lastWarningMinutes > 0 ? lastWarningMinutes : 5
+                                warningMinutes = restoredMinutes
+                                lastWarningMinutes = restoredMinutes
                             } else {
-                                lastWarningMinutes = max(1, warningMinutes)
+                                lastWarningMinutes = warningMinutes > 0 ? warningMinutes : (lastWarningMinutes > 0 ? lastWarningMinutes : 5)
                                 warningMinutes = 0
                             }
                         }
