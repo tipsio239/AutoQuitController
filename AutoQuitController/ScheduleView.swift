@@ -146,6 +146,10 @@ struct ScheduleRowView: View {
 
                     if schedule.lockScreen {
                         Label("Lock screen", systemImage: "lock.fill")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    
                     if schedule.shutdownComputer {
                         Label("Shutdown", systemImage: "power")
                             .font(.subheadline)
@@ -268,7 +272,7 @@ struct AddScheduleView: View {
                 
                 Section("Warning") {
                     Toggle("Enable warning", isOn: $warningsEnabled)
-                        .onChange(of: warningsEnabled) { newValue in
+                        .onChange(of: warningsEnabled) { oldValue, newValue in
                             if newValue {
                                 let restoredMinutes = lastWarningMinutes > 0 ? lastWarningMinutes : 5
                                 warningMinutes = restoredMinutes
@@ -278,7 +282,7 @@ struct AddScheduleView: View {
                                 warningMinutes = 0
                             }
                         }
-                        .onChange(of: warningMinutes) { newValue in
+                        .onChange(of: warningMinutes) { oldValue, newValue in
                             if warningsEnabled && newValue > 0 {
                                 lastWarningMinutes = newValue
                             }
@@ -299,7 +303,6 @@ struct AddScheduleView: View {
             }
             .scrollContentBackground(.hidden)
             .navigationTitle("New Schedule")
-            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -325,13 +328,9 @@ struct AddScheduleView: View {
             quitTime: quitTime,
             isEnabled: true,
             repeatDays: isOneTime ? [] : repeatDays,
-            warningMinutes: warningMinutes,
-            isOneTime: isOneTime,
-            lockScreen: lockScreen
             warningMinutes: warningsEnabled ? warningMinutes : 0,
-            isOneTime: isOneTime
-            warningMinutes: warningMinutes,
             isOneTime: isOneTime,
+            lockScreen: lockScreen,
             shutdownComputer: shutdownComputer
         )
 
@@ -432,7 +431,7 @@ struct EditScheduleView: View {
                 
                 Section("Warning") {
                     Toggle("Enable warning", isOn: $warningsEnabled)
-                        .onChange(of: warningsEnabled) { newValue in
+                        .onChange(of: warningsEnabled) { oldValue, newValue in
                             if newValue {
                                 let restoredMinutes = lastWarningMinutes > 0 ? lastWarningMinutes : 5
                                 warningMinutes = restoredMinutes
@@ -442,7 +441,7 @@ struct EditScheduleView: View {
                                 warningMinutes = 0
                             }
                         }
-                        .onChange(of: warningMinutes) { newValue in
+                        .onChange(of: warningMinutes) { oldValue, newValue in
                             if warningsEnabled && newValue > 0 {
                                 lastWarningMinutes = newValue
                             }
@@ -463,7 +462,6 @@ struct EditScheduleView: View {
             }
             .scrollContentBackground(.hidden)
             .navigationTitle("Edit Schedule")
-            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

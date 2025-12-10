@@ -20,11 +20,9 @@ struct AppSchedule: Identifiable, Codable {
     var warningMinutes: Int // Minutes before quit to show warning
     var isOneTime: Bool // If true, schedule is deleted after execution
     var lockScreen: Bool // If true, lock the screen when schedule triggers
-
-    init(appBundleId: String, appName: String, quitTime: Date, isEnabled: Bool = true, repeatDays: Set<Int> = [], warningMinutes: Int = 5, isOneTime: Bool = false, lockScreen: Bool = false) {
     var shutdownComputer: Bool
 
-    init(appBundleId: String, appName: String, quitTime: Date, isEnabled: Bool = true, repeatDays: Set<Int> = [], warningMinutes: Int = 5, isOneTime: Bool = false, shutdownComputer: Bool = false) {
+    init(appBundleId: String, appName: String, quitTime: Date, isEnabled: Bool = true, repeatDays: Set<Int> = [], warningMinutes: Int = 5, isOneTime: Bool = false, lockScreen: Bool = false, shutdownComputer: Bool = false) {
         self.appBundleId = appBundleId
         self.appName = appName
         self.quitTime = quitTime
@@ -56,15 +54,11 @@ struct AppSchedule: Identifiable, Codable {
         appBundleId = try container.decode(String.self, forKey: .appBundleId)
         appName = try container.decode(String.self, forKey: .appName)
         quitTime = try container.decode(Date.self, forKey: .quitTime)
-        isEnabled = try container.decode(Bool.self, forKey: .isEnabled)
-        repeatDays = try container.decode(Set<Int>.self, forKey: .repeatDays)
-        warningMinutes = try container.decode(Int.self, forKey: .warningMinutes)
-        isOneTime = try container.decode(Bool.self, forKey: .isOneTime)
-        lockScreen = try container.decodeIfPresent(Bool.self, forKey: .lockScreen) ?? false
         isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
         repeatDays = try container.decodeIfPresent(Set<Int>.self, forKey: .repeatDays) ?? []
         warningMinutes = try container.decodeIfPresent(Int.self, forKey: .warningMinutes) ?? 5
         isOneTime = try container.decodeIfPresent(Bool.self, forKey: .isOneTime) ?? false
+        lockScreen = try container.decodeIfPresent(Bool.self, forKey: .lockScreen) ?? false
         shutdownComputer = try container.decodeIfPresent(Bool.self, forKey: .shutdownComputer) ?? false
     }
 
