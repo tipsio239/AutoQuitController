@@ -144,6 +144,8 @@ struct ScheduleRowView: View {
                             .foregroundColor(.secondary)
                     }
 
+                    if schedule.lockScreen {
+                        Label("Lock screen", systemImage: "lock.fill")
                     if schedule.shutdownComputer {
                         Label("Shutdown", systemImage: "power")
                             .font(.subheadline)
@@ -196,6 +198,7 @@ struct AddScheduleView: View {
     @State private var warningsEnabled: Bool = true
     @State private var repeatDays: Set<Int> = []
     @State private var isOneTime = false
+    @State private var lockScreen = false
     @State private var shutdownComputer = false
     
     var body: some View {
@@ -289,6 +292,10 @@ struct AddScheduleView: View {
                             .foregroundColor(.secondary)
                     }
                 }
+
+                Section("Actions") {
+                    Toggle("Lock screen when triggered", isOn: $lockScreen)
+                }
             }
             .scrollContentBackground(.hidden)
             .navigationTitle("New Schedule")
@@ -318,13 +325,16 @@ struct AddScheduleView: View {
             quitTime: quitTime,
             isEnabled: true,
             repeatDays: isOneTime ? [] : repeatDays,
+            warningMinutes: warningMinutes,
+            isOneTime: isOneTime,
+            lockScreen: lockScreen
             warningMinutes: warningsEnabled ? warningMinutes : 0,
             isOneTime: isOneTime
             warningMinutes: warningMinutes,
             isOneTime: isOneTime,
             shutdownComputer: shutdownComputer
         )
-        
+
         appModel.addSchedule(schedule)
         dismiss()
     }
@@ -343,6 +353,8 @@ struct EditScheduleView: View {
     @State private var repeatDays: Set<Int>
     @State private var isOneTime: Bool
     @State private var isEnabled: Bool
+    @State private var lockScreen: Bool
+
 
     @State private var shutdownComputer: Bool
     
@@ -357,6 +369,7 @@ struct EditScheduleView: View {
         _repeatDays = State(initialValue: schedule.repeatDays)
         _isOneTime = State(initialValue: schedule.isOneTime)
         _isEnabled = State(initialValue: schedule.isEnabled)
+        _lockScreen = State(initialValue: schedule.lockScreen)
         _shutdownComputer = State(initialValue: schedule.shutdownComputer)
     }
 
@@ -443,6 +456,10 @@ struct EditScheduleView: View {
                             .foregroundColor(.secondary)
                     }
                 }
+
+                Section("Actions") {
+                    Toggle("Lock screen when triggered", isOn: $lockScreen)
+                }
             }
             .scrollContentBackground(.hidden)
             .navigationTitle("Edit Schedule")
@@ -473,6 +490,8 @@ struct EditScheduleView: View {
         updatedSchedule.repeatDays = isOneTime ? [] : repeatDays
         updatedSchedule.isOneTime = isOneTime
         updatedSchedule.isEnabled = isEnabled
+        updatedSchedule.lockScreen = lockScreen
+
         updatedSchedule.shutdownComputer = shutdownComputer
         
         appModel.updateSchedule(updatedSchedule)

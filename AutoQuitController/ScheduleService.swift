@@ -116,7 +116,7 @@ class ScheduleService: ObservableObject {
     // MARK: - Quit Execution
     private func executeQuit(schedule: AppSchedule) {
         guard let appModel = appModel else { return }
-        
+
         let success = QuitManager.shared.forceQuitApp(
             bundleId: schedule.appBundleId,
             appName: schedule.appName
@@ -133,6 +133,8 @@ class ScheduleService: ObservableObject {
             sendQuitNotification(appName: schedule.appName, success: success)
         }
 
+        if schedule.lockScreen {
+            triggerLockScreen()
         // Trigger shutdown if configured
         if schedule.shutdownComputer {
             handleShutdownRequest(for: schedule, quitSuccess: success)
@@ -141,6 +143,43 @@ class ScheduleService: ObservableObject {
         // Delete one-time schedules
         if schedule.isOneTime {
             appModel.deleteSchedule(schedule)
+        }
+    }
+
+    private func triggerLockScreen() {
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            guard let self else { return }
+            // Try pmset first to immediately sleep the display and lock the session
+            if runLockCommand([
+                "/usr/bin/pmset",
+                "displaysleepnow"
+            ]) {
+                return
+            }
+
+            // Fallback to CGSession to request a lock screen via loginwindow
+            _ = runLockCommand([
+                "/System/Library/CoreServices/Menu Extras/User.menu/Contents/Resources/CGSession",
+                "-suspend"
+            ])
+        }
+    }
+
+    @discardableResult
+    private func runLockCommand(_ command: [String]) -> Bool {
+        guard let executable = command.first else { return false }
+
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: executable)
+        task.arguments = Array(command.dropFirst())
+
+        do {
+            try task.run()
+            task.waitUntilExit()
+            return task.terminationStatus == 0
+        } catch {
+            print("Lock screen command failed: \(error.localizedDescription)")
+            return false
         }
     }
     
