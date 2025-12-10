@@ -192,6 +192,8 @@ struct AddScheduleView: View {
     @State private var selectedApp: RunningApp?
     @State private var quitTime = Date()
     @State private var warningMinutes: Int = 5
+    @State private var lastWarningMinutes: Int = 5
+    @State private var warningsEnabled: Bool = true
     @State private var repeatDays: Set<Int> = []
     @State private var isOneTime = false
     @State private var shutdownComputer = false
@@ -256,8 +258,26 @@ struct AddScheduleView: View {
                 }
                 
                 Section("Warning") {
-                    Stepper("Warning \(warningMinutes) minutes before", value: $warningMinutes, in: 0...60)
-                    if warningMinutes == 0 {
+                    Toggle("Enable warning", isOn: $warningsEnabled)
+                        .onChange(of: warningsEnabled) { newValue in
+                            if newValue {
+                                let restoredMinutes = lastWarningMinutes > 0 ? lastWarningMinutes : 5
+                                warningMinutes = restoredMinutes
+                                lastWarningMinutes = restoredMinutes
+                            } else {
+                                lastWarningMinutes = warningMinutes > 0 ? warningMinutes : (lastWarningMinutes > 0 ? lastWarningMinutes : 5)
+                                warningMinutes = 0
+                            }
+                        }
+                        .onChange(of: warningMinutes) { newValue in
+                            if warningsEnabled && newValue > 0 {
+                                lastWarningMinutes = newValue
+                            }
+                        }
+
+                    if warningsEnabled {
+                        Stepper("Warning \(warningMinutes) minutes before", value: $warningMinutes, in: 1...60)
+                    } else {
                         Text("No warning will be shown")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -292,6 +312,8 @@ struct AddScheduleView: View {
             quitTime: quitTime,
             isEnabled: true,
             repeatDays: isOneTime ? [] : repeatDays,
+            warningMinutes: warningsEnabled ? warningMinutes : 0,
+            isOneTime: isOneTime
             warningMinutes: warningMinutes,
             isOneTime: isOneTime,
             shutdownComputer: shutdownComputer
@@ -309,6 +331,8 @@ struct EditScheduleView: View {
     
     @State private var quitTime: Date
     @State private var warningMinutes: Int
+    @State private var lastWarningMinutes: Int
+    @State private var warningsEnabled: Bool
     @State private var repeatDays: Set<Int>
     @State private var isOneTime: Bool
     @State private var isEnabled: Bool
@@ -317,7 +341,10 @@ struct EditScheduleView: View {
     init(schedule: AppSchedule) {
         self.schedule = schedule
         _quitTime = State(initialValue: schedule.quitTime)
-        _warningMinutes = State(initialValue: schedule.warningMinutes)
+        let initialWarningMinutes = schedule.warningMinutes > 0 ? schedule.warningMinutes : 5
+        _warningMinutes = State(initialValue: initialWarningMinutes)
+        _lastWarningMinutes = State(initialValue: initialWarningMinutes)
+        _warningsEnabled = State(initialValue: schedule.warningMinutes > 0)
         _repeatDays = State(initialValue: schedule.repeatDays)
         _isOneTime = State(initialValue: schedule.isOneTime)
         _isEnabled = State(initialValue: schedule.isEnabled)
@@ -363,7 +390,30 @@ struct EditScheduleView: View {
                 }
                 
                 Section("Warning") {
-                    Stepper("Warning \(warningMinutes) minutes before", value: $warningMinutes, in: 0...60)
+                    Toggle("Enable warning", isOn: $warningsEnabled)
+                        .onChange(of: warningsEnabled) { newValue in
+                            if newValue {
+                                let restoredMinutes = lastWarningMinutes > 0 ? lastWarningMinutes : 5
+                                warningMinutes = restoredMinutes
+                                lastWarningMinutes = restoredMinutes
+                            } else {
+                                lastWarningMinutes = warningMinutes > 0 ? warningMinutes : (lastWarningMinutes > 0 ? lastWarningMinutes : 5)
+                                warningMinutes = 0
+                            }
+                        }
+                        .onChange(of: warningMinutes) { newValue in
+                            if warningsEnabled && newValue > 0 {
+                                lastWarningMinutes = newValue
+                            }
+                        }
+
+                    if warningsEnabled {
+                        Stepper("Warning \(warningMinutes) minutes before", value: $warningMinutes, in: 1...60)
+                    } else {
+                        Text("No warning will be shown")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
             .scrollContentBackground(.hidden)
@@ -387,7 +437,7 @@ struct EditScheduleView: View {
     private func saveSchedule() {
         var updatedSchedule = schedule
         updatedSchedule.quitTime = quitTime
-        updatedSchedule.warningMinutes = warningMinutes
+        updatedSchedule.warningMinutes = warningsEnabled ? warningMinutes : 0
         updatedSchedule.repeatDays = isOneTime ? [] : repeatDays
         updatedSchedule.isOneTime = isOneTime
         updatedSchedule.isEnabled = isEnabled
