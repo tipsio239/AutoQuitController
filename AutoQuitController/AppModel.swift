@@ -183,7 +183,7 @@ class AppModel: ObservableObject {
 }
 
 // MARK: - Running App Info
-struct RunningApp: Identifiable {
+struct RunningApp: Identifiable, Hashable {
     let id: String
     let bundleId: String
     let name: String
@@ -194,6 +194,14 @@ struct RunningApp: Identifiable {
         self.bundleId = bundleId
         self.name = name
         self.icon = icon
+    }
+
+    static func == (lhs: RunningApp, rhs: RunningApp) -> Bool {
+        lhs.bundleId == rhs.bundleId
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(bundleId)
     }
 }
 
