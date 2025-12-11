@@ -109,10 +109,12 @@ class AppModel: ObservableObject {
     @Published var schedules: [AppSchedule] = []
     @Published var quitLogs: [QuitLogEntry] = []
     @Published var whitelistedApps: Set<String> = []
+    @Published var isPaused: Bool = false
 
     private let schedulesKey = "com.tipsio239.AutoQuitController.schedules"
     private let logsKey = "com.tipsio239.AutoQuitController.logs"
     private let whitelistKey = "com.tipsio239.AutoQuitController.whitelist"
+    private let pauseKey = "com.tipsio239.AutoQuitController.pauseState"
     
     init() {
         loadData()
@@ -150,17 +152,26 @@ class AppModel: ObservableObject {
     func saveWhitelist() {
         UserDefaults.standard.set(Array(whitelistedApps), forKey: whitelistKey)
     }
-    
+
     func loadWhitelist() {
         if let array = UserDefaults.standard.array(forKey: whitelistKey) as? [String] {
             whitelistedApps = Set(array)
         }
     }
-    
+
+    func savePauseState() {
+        UserDefaults.standard.set(isPaused, forKey: pauseKey)
+    }
+
+    func loadPauseState() {
+        isPaused = UserDefaults.standard.bool(forKey: pauseKey)
+    }
+
     func loadData() {
         loadSchedules()
         loadLogs()
         loadWhitelist()
+        loadPauseState()
     }
     
     // MARK: - Schedule Management
@@ -232,6 +243,16 @@ class AppModel: ObservableObject {
     
     func isWhitelisted(_ bundleId: String) -> Bool {
         return whitelistedApps.contains(bundleId)
+    }
+
+    func pauseAllSchedules() {
+        isPaused = true
+        savePauseState()
+    }
+
+    func resumeAllSchedules() {
+        isPaused = false
+        savePauseState()
     }
     
 }
