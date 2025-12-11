@@ -11,41 +11,47 @@ import Testing
 
 struct AutoQuitControllerTests {
 
-    @Test func deletePastSchedulesRemovesExpiredOneTimeEntries() async throws {
-        let referenceDate = Date(timeIntervalSince1970: 1_700_000_000)
-        var appModel = AppModel()
+    @Test func oneTimeScheduleExecutesOnlyOnExactDate() async throws {
+        let calendar = Calendar(identifier: .gregorian)
+        let scheduledDate = calendar.date(from: DateComponents(year: 2024, month: 2, day: 1, hour: 9, minute: 30))!
 
-        let pastOneTime = AppSchedule(
-            appBundleId: "com.example.past",
-            appName: "Past",
-            quitTime: referenceDate.addingTimeInterval(-3600),
-            isOneTime: true,
-            repeatDays: []
+        let schedule = AppSchedule(
+            appBundleId: "com.example.test",
+            appName: "Test App",
+            quitTime: scheduledDate,
+            warningMinutes: 5,
+            isOneTime: true
         )
 
-        let futureOneTime = AppSchedule(
-            appBundleId: "com.example.future",
-            appName: "Future",
-            quitTime: referenceDate.addingTimeInterval(3600),
-            isOneTime: true,
-            repeatDays: []
+        #expect(ScheduleService.isExecutionTime(for: schedule, at: scheduledDate, calendar: calendar))
+
+        let nextDaySameTime = calendar.date(byAdding: .day, value: 1, to: scheduledDate)!
+        #expect(!ScheduleService.isExecutionTime(for: schedule, at: nextDaySameTime, calendar: calendar))
+
+        let oneHourLater = calendar.date(byAdding: .hour, value: 1, to: scheduledDate)!
+        #expect(!ScheduleService.isExecutionTime(for: schedule, at: oneHourLater, calendar: calendar))
+    }
+
+    @Test func oneTimeWarningMatchesExactDate() async throws {
+        let calendar = Calendar(identifier: .gregorian)
+        let scheduledDate = calendar.date(from: DateComponents(year: 2024, month: 2, day: 1, hour: 9, minute: 30))!
+
+        let schedule = AppSchedule(
+            appBundleId: "com.example.test",
+            appName: "Test App",
+            quitTime: scheduledDate,
+            warningMinutes: 10,
+            isOneTime: true
         )
 
-        let recurring = AppSchedule(
-            appBundleId: "com.example.recurring",
-            appName: "Recurring",
-            quitTime: referenceDate.addingTimeInterval(-7200),
-            isOneTime: false,
-            repeatDays: [1, 3, 5]
-        )
+        let warningDate = calendar.date(byAdding: .minute, value: -10, to: scheduledDate)!
+        #expect(ScheduleService.isWarningTime(for: schedule, at: warningDate, calendar: calendar))
 
-        appModel.schedules = [pastOneTime, futureOneTime, recurring]
+        let sameTimeDifferentDay = calendar.date(byAdding: .day, value: 1, to: warningDate)!
+        #expect(!ScheduleService.isWarningTime(for: schedule, at: sameTimeDifferentDay, calendar: calendar))
 
-        appModel.deletePastSchedules(referenceDate: referenceDate)
-
-        #expect(appModel.schedules.contains(pastOneTime) == false)
-        #expect(appModel.schedules.contains(futureOneTime))
-        #expect(appModel.schedules.contains(recurring))
+        let warningMinutePassed = calendar.date(byAdding: .minute, value: 1, to: warningDate)!
+        #expect(!ScheduleService.isWarningTime(for: schedule, at: warningMinutePassed, calendar: calendar))
     }
 
     @Test func hasPastSchedulesMatchesHelperLogic() async throws {
