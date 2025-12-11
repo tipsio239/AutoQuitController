@@ -112,12 +112,14 @@ struct AppRowView: View {
             }
             
             Spacer()
-            
+
             Button(action: toggleWhitelist) {
                 Label(
                     isWhitelisted ? "Whitelisted" : "Whitelist",
                     systemImage: isWhitelisted ? "shield.checkmark.fill" : "shield"
                 )
+                .labelStyle(.titleAndIcon)
+                .imageScale(.medium)
             }
             .buttonStyle(.borderedProminent)
             .tint(isWhitelisted ? .orange : .accentColor)
