@@ -22,6 +22,10 @@ struct AppSchedule: Identifiable, Codable {
     var lockScreen: Bool // If true, lock the screen when schedule triggers
     var shutdownComputer: Bool
 
+    var isOneTimeWithoutRepeats: Bool {
+        isOneTime && repeatDays.isEmpty
+    }
+
     init(
         id: UUID = UUID(),
         appBundleId: String,
@@ -205,7 +209,7 @@ class AppModel: ObservableObject {
     }
 
     private func isPastOneTime(_ schedule: AppSchedule, referenceDate: Date) -> Bool {
-        guard schedule.isOneTime, schedule.repeatDays.isEmpty else { return false }
+        guard schedule.isOneTimeWithoutRepeats else { return false }
         return schedule.quitTime < referenceDate
     }
 
