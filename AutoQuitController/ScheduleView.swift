@@ -196,6 +196,8 @@ struct AddScheduleView: View {
     @Environment(\.dismiss) var dismiss
     
     @State private var selectedApp: RunningApp?
+    @State private var manualBundleId: String = ""
+    @State private var manualAppName: String = ""
     @State private var quitTime = Date()
     @State private var warningMinutes: Int = 5
     @State private var lastWarningMinutes: Int = 5
@@ -209,9 +211,11 @@ struct AddScheduleView: View {
         NavigationStack {
             Form {
                 Section("App") {
+                    let availableApps = appModel.getAvailableApps()
+
                     Picker("Select App", selection: $selectedApp) {
                         Text("Choose an app...").tag(nil as RunningApp?)
-                        ForEach(appModel.getRunningApps()) { app in
+                        ForEach(availableApps) { app in
                             HStack {
                                 if let icon = app.icon {
                                     Image(nsImage: icon)
@@ -222,6 +226,22 @@ struct AddScheduleView: View {
                             }
                             .tag(app as RunningApp?)
                         }
+                    }
+
+                    if availableApps.isEmpty {
+                        Text("No applications found. Enter the bundle ID manually to continue.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Manual entry")
+                            .font(.subheadline.weight(.semibold))
+                        TextField("Bundle ID (e.g. com.apple.Safari)", text: $manualBundleId)
+                        TextField("Display name", text: $manualAppName)
+                        Text("Use this if your app is not listed above.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
                 }
                 
@@ -320,16 +340,16 @@ struct AddScheduleView: View {
                     Button("Add") {
                         addSchedule()
                     }
-                    .disabled(selectedApp == nil)
+                    .disabled(!canCreateSchedule)
                 }
             }
         }
         .frame(width: 600, height: 500)
         .background(Color(nsColor: .windowBackgroundColor))
     }
-    
+
     private func addSchedule() {
-        guard let app = selectedApp else { return }
+        guard let app = selectedApp ?? manualEntryApp else { return }
 
         let scheduleWarningMinutes = warningsEnabled ? warningMinutes : 0
 
@@ -347,6 +367,20 @@ struct AddScheduleView: View {
 
         appModel.addSchedule(schedule)
         dismiss()
+    }
+
+    private var manualEntryApp: RunningApp? {
+        let trimmedBundleId = manualBundleId.trimmingCharacters(in: .whitespaces)
+        guard !trimmedBundleId.isEmpty else { return nil }
+
+        let trimmedName = manualAppName.trimmingCharacters(in: .whitespaces)
+        let resolvedName = trimmedName.isEmpty ? trimmedBundleId : trimmedName
+
+        return RunningApp(bundleId: trimmedBundleId, name: resolvedName, icon: nil)
+    }
+
+    private var canCreateSchedule: Bool {
+        selectedApp != nil || manualEntryApp != nil
     }
 }
 
@@ -384,8 +418,7 @@ struct EditScheduleView: View {
     }
 
     var body: some View {
-        let runningApps = appModel.getRunningApps()
-        let availableApps = availableApps(from: runningApps)
+        let availableApps = availableApps(from: appModel.getAvailableApps())
 
         NavigationStack {
             Form {
@@ -404,7 +437,7 @@ struct EditScheduleView: View {
                             .tag(app as RunningApp?)
                         }
                     }
-                    .disabled(runningApps.isEmpty)
+                    .disabled(availableApps.isEmpty)
                 }
 
                 Section("Schedule") {
@@ -516,12 +549,12 @@ struct EditScheduleView: View {
         dismiss()
     }
 
-    private func availableApps(from runningApps: [RunningApp]) -> [RunningApp] {
-        var apps = runningApps
-        if !apps.contains(where: { $0.bundleId == schedule.appBundleId }) {
-            apps.insert(RunningApp(bundleId: schedule.appBundleId, name: schedule.appName, icon: nil), at: 0)
+    private func availableApps(from apps: [RunningApp]) -> [RunningApp] {
+        var available = apps
+        if !available.contains(where: { $0.bundleId == schedule.appBundleId }) {
+            available.insert(RunningApp(bundleId: schedule.appBundleId, name: schedule.appName, icon: nil), at: 0)
         }
-        return apps
+        return available
     }
 }
 
