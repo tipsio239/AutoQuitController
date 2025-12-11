@@ -190,7 +190,25 @@ class AppModel: ObservableObject {
         schedules.removeAll { $0.id == schedule.id }
         saveSchedules()
     }
-    
+
+    func deletePastSchedules(referenceDate: Date = Date()) {
+        schedules.removeAll { schedule in
+            isPastOneTime(schedule, referenceDate: referenceDate)
+        }
+        saveSchedules()
+    }
+
+    func hasPastSchedules(referenceDate: Date = Date()) -> Bool {
+        schedules.contains { schedule in
+            isPastOneTime(schedule, referenceDate: referenceDate)
+        }
+    }
+
+    private func isPastOneTime(_ schedule: AppSchedule, referenceDate: Date) -> Bool {
+        guard schedule.isOneTime, schedule.repeatDays.isEmpty else { return false }
+        return schedule.quitTime < referenceDate
+    }
+
     func toggleSchedule(_ schedule: AppSchedule) {
         if let index = schedules.firstIndex(where: { $0.id == schedule.id }) {
             schedules[index].isEnabled.toggle()
