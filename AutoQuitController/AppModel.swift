@@ -196,21 +196,17 @@ class AppModel: ObservableObject {
     }
 
     func deletePastSchedules(referenceDate: Date = Date()) {
+        let now = referenceDate
         schedules.removeAll { schedule in
-            isPastOneTime(schedule, referenceDate: referenceDate)
+            schedule.isOneTime && schedule.repeatDays.isEmpty && schedule.quitTime < now
         }
         saveSchedules()
     }
 
     func hasPastSchedules(referenceDate: Date = Date()) -> Bool {
         schedules.contains { schedule in
-            isPastOneTime(schedule, referenceDate: referenceDate)
+            schedule.isOneTime && schedule.repeatDays.isEmpty && schedule.quitTime < referenceDate
         }
-    }
-
-    private func isPastOneTime(_ schedule: AppSchedule, referenceDate: Date) -> Bool {
-        guard schedule.isOneTimeWithoutRepeats else { return false }
-        return schedule.quitTime < referenceDate
     }
 
     func toggleSchedule(_ schedule: AppSchedule) {
@@ -288,6 +284,48 @@ struct RunningApp: Identifiable, Hashable {
 }
 
 extension AppModel {
+    func getInstalledApps() -> [RunningApp] {
+        let searchPaths = [
+            "/Applications",
+            "/System/Applications",
+            NSString(string: "~/Applications").expandingTildeInPath
+        ]
+
+        let fileManager = FileManager.default
+        var uniqueApps: [String: RunningApp] = [:]
+
+        for path in searchPaths {
+            let url = URL(fileURLWithPath: path)
+            guard let enumerator = fileManager.enumerator(
+                at: url,
+                includingPropertiesForKeys: [.isDirectoryKey],
+                options: [.skipsHiddenFiles, .skipsPackageDescendants]
+            ) else { continue }
+
+            for case let appURL as URL in enumerator {
+                guard appURL.pathExtension == "app",
+                      let bundle = Bundle(url: appURL),
+                      let bundleId = bundle.bundleIdentifier else {
+                    continue
+                }
+
+                let appName = bundle.object(forInfoDictionaryKey: "CFBundleName") as? String
+                    ?? appURL.deletingPathExtension().lastPathComponent
+                let icon = NSWorkspace.shared.icon(forFile: appURL.path)
+
+                uniqueApps[bundleId] = RunningApp(
+                    bundleId: bundleId,
+                    name: appName,
+                    icon: icon
+                )
+            }
+        }
+
+        return uniqueApps
+            .values
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
     func getRunningApps() -> [RunningApp] {
         let workspace = NSWorkspace.shared
         let runningApps = workspace.runningApplications
@@ -312,6 +350,18 @@ extension AppModel {
         return uniqueApps
             .values
             .sorted { $0.name < $1.name }
+    }
+
+    func getAvailableApps() -> [RunningApp] {
+        var uniqueApps: [String: RunningApp] = [:]
+
+        for app in getInstalledApps() + getRunningApps() {
+            uniqueApps[app.bundleId] = app
+        }
+
+        return uniqueApps
+            .values
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 }
 

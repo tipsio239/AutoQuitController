@@ -73,44 +73,59 @@ class ScheduleService: ObservableObject {
         startScheduler()
     }
     
-    private func checkSchedules() {
+    func checkSchedules(now: Date = Date(), calendar: Calendar = .current) {
         guard let appModel = appModel else { return }
         guard !appModel.isPaused else { return }
-        
-        let now = Date()
-        let calendar = Calendar.current
-        let currentWeekday = calendar.component(.weekday, from: now) - 1 // Convert to 0-6 (Sunday = 0)
-        
+
         for schedule in appModel.schedules {
             guard schedule.isEnabled else { continue }
             guard !appModel.isWhitelisted(schedule.appBundleId) else { continue }
-            
-            // Check if schedule applies today
-            if !schedule.repeatDays.isEmpty && !schedule.repeatDays.contains(currentWeekday) {
-                continue
-            }
-            
-            let scheduleTime = schedule.quitTime
-            let scheduleComponents = calendar.dateComponents([.hour, .minute], from: scheduleTime)
-            let nowComponents = calendar.dateComponents([.hour, .minute], from: now)
-            
-            // Check if it's time to quit
-            if scheduleComponents.hour == nowComponents.hour &&
-               scheduleComponents.minute == nowComponents.minute {
+
+            if ScheduleService.isExecutionTime(for: schedule, at: now, calendar: calendar) {
                 executeQuit(schedule: schedule)
             }
-            
-            // Check if it's time for warning
-            if schedule.warningMinutes > 0 {
-                let warningTime = calendar.date(byAdding: .minute, value: -schedule.warningMinutes, to: scheduleTime) ?? scheduleTime
-                let warningComponents = calendar.dateComponents([.hour, .minute], from: warningTime)
-                
-                if warningComponents.hour == nowComponents.hour &&
-                   warningComponents.minute == nowComponents.minute {
-                    sendWarning(schedule: schedule)
-                }
+
+            if ScheduleService.isWarningTime(for: schedule, at: now, calendar: calendar) {
+                sendWarning(schedule: schedule)
             }
         }
+    }
+
+    static func isExecutionTime(for schedule: AppSchedule, at date: Date, calendar: Calendar = .current) -> Bool {
+        if schedule.isOneTime {
+            return calendar.isDate(schedule.quitTime, equalTo: date, toGranularity: .minute)
+        }
+
+        let currentWeekday = calendar.component(.weekday, from: date) - 1 // Convert to 0-6 (Sunday = 0)
+        if !schedule.repeatDays.isEmpty && !schedule.repeatDays.contains(currentWeekday) {
+            return false
+        }
+
+        let scheduleComponents = calendar.dateComponents([.hour, .minute], from: schedule.quitTime)
+        let nowComponents = calendar.dateComponents([.hour, .minute], from: date)
+
+        return scheduleComponents.hour == nowComponents.hour &&
+               scheduleComponents.minute == nowComponents.minute
+    }
+
+    static func isWarningTime(for schedule: AppSchedule, at date: Date, calendar: Calendar = .current) -> Bool {
+        guard schedule.warningMinutes > 0 else { return false }
+        let warningTime = calendar.date(byAdding: .minute, value: -schedule.warningMinutes, to: schedule.quitTime) ?? schedule.quitTime
+
+        if schedule.isOneTime {
+            return calendar.isDate(warningTime, equalTo: date, toGranularity: .minute)
+        }
+
+        let currentWeekday = calendar.component(.weekday, from: date) - 1 // Convert to 0-6 (Sunday = 0)
+        if !schedule.repeatDays.isEmpty && !schedule.repeatDays.contains(currentWeekday) {
+            return false
+        }
+
+        let warningComponents = calendar.dateComponents([.hour, .minute], from: warningTime)
+        let nowComponents = calendar.dateComponents([.hour, .minute], from: date)
+
+        return warningComponents.hour == nowComponents.hour &&
+               warningComponents.minute == nowComponents.minute
     }
     
     // MARK: - Quit Execution
