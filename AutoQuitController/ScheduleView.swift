@@ -11,7 +11,8 @@ struct ScheduleView: View {
     @EnvironmentObject var appModel: AppModel
     @State private var showingAddSchedule = false
     @State private var selectedSchedule: AppSchedule?
-    
+    @State private var showingDeletePastConfirmation = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 6) {
@@ -23,6 +24,16 @@ struct ScheduleView: View {
             }
 
             HStack {
+                Button(role: .destructive) {
+                    showingDeletePastConfirmation = true
+                } label: {
+                    Label("Delete Past", systemImage: "trash")
+                        .fontWeight(.semibold)
+                        .padding(.horizontal, 4)
+                }
+                .disabled(!appModel.hasPastSchedules())
+                .buttonStyle(.bordered)
+
                 Spacer()
                 Button(action: { showingAddSchedule = true }) {
                     Label("Add Schedule", systemImage: "plus.circle.fill")
@@ -97,8 +108,20 @@ struct ScheduleView: View {
             EditScheduleView(schedule: schedule)
                 .environmentObject(appModel)
         }
+        .confirmationDialog(
+            "Delete all past one-time schedules?",
+            isPresented: $showingDeletePastConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete Past Schedules", role: .destructive) {
+                appModel.deletePastSchedules()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Any one-time schedules with times that have already passed will be removed.")
+        }
     }
-    
+
     private func deleteSchedules(at offsets: IndexSet) {
         for index in offsets {
             appModel.deleteSchedule(appModel.schedules[index])

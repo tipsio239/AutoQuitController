@@ -22,6 +22,10 @@ struct AppSchedule: Identifiable, Codable {
     var lockScreen: Bool // If true, lock the screen when schedule triggers
     var shutdownComputer: Bool
 
+    var isOneTimeWithoutRepeats: Bool {
+        isOneTime && repeatDays.isEmpty
+    }
+
     init(
         id: UUID = UUID(),
         appBundleId: String,
@@ -105,13 +109,10 @@ class AppModel: ObservableObject {
     @Published var schedules: [AppSchedule] = []
     @Published var quitLogs: [QuitLogEntry] = []
     @Published var whitelistedApps: Set<String> = []
-    @Published var isPaused: Bool = false
-    @Published var showNotifications: Bool = true
-    
+
     private let schedulesKey = "com.tipsio239.AutoQuitController.schedules"
     private let logsKey = "com.tipsio239.AutoQuitController.logs"
     private let whitelistKey = "com.tipsio239.AutoQuitController.whitelist"
-    private let settingsKey = "com.tipsio239.AutoQuitController.settings"
     
     init() {
         loadData()
@@ -156,21 +157,10 @@ class AppModel: ObservableObject {
         }
     }
     
-    func saveSettings() {
-        UserDefaults.standard.set(isPaused, forKey: "\(settingsKey).isPaused")
-        UserDefaults.standard.set(showNotifications, forKey: "\(settingsKey).showNotifications")
-    }
-    
-    func loadSettings() {
-        isPaused = UserDefaults.standard.bool(forKey: "\(settingsKey).isPaused")
-        showNotifications = UserDefaults.standard.bool(forKey: "\(settingsKey).showNotifications")
-    }
-    
     func loadData() {
         loadSchedules()
         loadLogs()
         loadWhitelist()
-        loadSettings()
     }
     
     // MARK: - Schedule Management
@@ -190,7 +180,25 @@ class AppModel: ObservableObject {
         schedules.removeAll { $0.id == schedule.id }
         saveSchedules()
     }
-    
+
+    func deletePastSchedules(referenceDate: Date = Date()) {
+        schedules.removeAll { schedule in
+            isPastOneTime(schedule, referenceDate: referenceDate)
+        }
+        saveSchedules()
+    }
+
+    func hasPastSchedules(referenceDate: Date = Date()) -> Bool {
+        schedules.contains { schedule in
+            isPastOneTime(schedule, referenceDate: referenceDate)
+        }
+    }
+
+    private func isPastOneTime(_ schedule: AppSchedule, referenceDate: Date) -> Bool {
+        guard schedule.isOneTimeWithoutRepeats else { return false }
+        return schedule.quitTime < referenceDate
+    }
+
     func toggleSchedule(_ schedule: AppSchedule) {
         if let index = schedules.firstIndex(where: { $0.id == schedule.id }) {
             schedules[index].isEnabled.toggle()
@@ -230,16 +238,6 @@ class AppModel: ObservableObject {
         return whitelistedApps.contains(bundleId)
     }
     
-    // MARK: - Settings
-    func togglePause() {
-        isPaused.toggle()
-        saveSettings()
-    }
-    
-    func toggleNotifications() {
-        showNotifications.toggle()
-        saveSettings()
-    }
 }
 
 // MARK: - Running App Info
