@@ -22,6 +22,10 @@ struct AppSchedule: Identifiable, Codable {
     var lockScreen: Bool // If true, lock the screen when schedule triggers
     var shutdownComputer: Bool
 
+    var isOneTimeWithoutRepeats: Bool {
+        isOneTime && repeatDays.isEmpty
+    }
+
     init(
         id: UUID = UUID(),
         appBundleId: String,

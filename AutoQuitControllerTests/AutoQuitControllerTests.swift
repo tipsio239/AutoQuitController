@@ -5,6 +5,7 @@
 //  Created by Justin Wong on 2025/12/11.
 //
 
+import Foundation
 import Testing
 @testable import AutoQuitController
 
@@ -53,4 +54,33 @@ struct AutoQuitControllerTests {
         #expect(!ScheduleService.isWarningTime(for: schedule, at: warningMinutePassed, calendar: calendar))
     }
 
+    @Test func hasPastSchedulesMatchesHelperLogic() async throws {
+        let referenceDate = Date(timeIntervalSince1970: 1_700_000_000)
+        var appModel = AppModel()
+
+        let pastOneTime = AppSchedule(
+            appBundleId: "com.example.past",
+            appName: "Past",
+            quitTime: referenceDate.addingTimeInterval(-60),
+            isOneTime: true,
+            repeatDays: []
+        )
+
+        appModel.schedules = [pastOneTime]
+        #expect(appModel.hasPastSchedules(referenceDate: referenceDate))
+
+        let upcoming = AppSchedule(
+            appBundleId: "com.example.upcoming",
+            appName: "Upcoming",
+            quitTime: referenceDate.addingTimeInterval(120),
+            isOneTime: true,
+            repeatDays: []
+        )
+
+        appModel.schedules.append(upcoming)
+        #expect(appModel.hasPastSchedules(referenceDate: referenceDate))
+
+        appModel.deletePastSchedules(referenceDate: referenceDate)
+        #expect(appModel.hasPastSchedules(referenceDate: referenceDate) == false)
+    }
 }
