@@ -13,48 +13,36 @@ struct SettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Settings")
+                Text("Logs")
                     .font(.title2.weight(.semibold))
-                Text("Tune notifications, pause rules, and review recent actions.")
+                Text("Review recent quit activity and manage log history.")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
 
-            Form {
-                Section("General") {
-                    Toggle("Pause all schedules", isOn: Binding(
-                        get: { appModel.isPaused },
-                        set: { _ in appModel.togglePause() }
-                    ))
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Quit Logs")
+                    .font(.headline)
 
-                    Toggle("Show notifications", isOn: Binding(
-                        get: { appModel.showNotifications },
-                        set: { _ in appModel.toggleNotifications() }
-                    ))
-                }
-
-                Section("Quit Logs") {
-                    if appModel.quitLogs.isEmpty {
-                        Text("No quit logs yet")
-                            .foregroundColor(.secondary)
-                    } else {
-                        List {
-                            ForEach(appModel.quitLogs.prefix(50)) { log in
-                                LogRowView(log: log)
-                            }
+                if appModel.quitLogs.isEmpty {
+                    Text("No quit logs yet")
+                        .foregroundColor(.secondary)
+                } else {
+                    List {
+                        ForEach(appModel.quitLogs.prefix(50)) { log in
+                            LogRowView(log: log)
                         }
-                        .scrollContentBackground(.hidden)
-                        .frame(height: 300)
-
-                        Button("Clear Logs") {
-                            appModel.clearLogs()
-                        }
-                        .buttonStyle(.borderless)
-                        .foregroundColor(.red)
                     }
+                    .scrollContentBackground(.hidden)
+                    .frame(height: 300)
+
+                    Button("Clear Logs") {
+                        appModel.clearLogs()
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundColor(.red)
                 }
             }
-            .scrollContentBackground(.hidden)
             .padding(12)
             .background(Color(nsColor: .textBackgroundColor))
             .cornerRadius(14)

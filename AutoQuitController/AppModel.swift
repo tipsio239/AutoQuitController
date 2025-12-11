@@ -109,13 +109,10 @@ class AppModel: ObservableObject {
     @Published var schedules: [AppSchedule] = []
     @Published var quitLogs: [QuitLogEntry] = []
     @Published var whitelistedApps: Set<String> = []
-    @Published var isPaused: Bool = false
-    @Published var showNotifications: Bool = true
-    
+
     private let schedulesKey = "com.tipsio239.AutoQuitController.schedules"
     private let logsKey = "com.tipsio239.AutoQuitController.logs"
     private let whitelistKey = "com.tipsio239.AutoQuitController.whitelist"
-    private let settingsKey = "com.tipsio239.AutoQuitController.settings"
     
     init() {
         loadData()
@@ -160,21 +157,10 @@ class AppModel: ObservableObject {
         }
     }
     
-    func saveSettings() {
-        UserDefaults.standard.set(isPaused, forKey: "\(settingsKey).isPaused")
-        UserDefaults.standard.set(showNotifications, forKey: "\(settingsKey).showNotifications")
-    }
-    
-    func loadSettings() {
-        isPaused = UserDefaults.standard.bool(forKey: "\(settingsKey).isPaused")
-        showNotifications = UserDefaults.standard.bool(forKey: "\(settingsKey).showNotifications")
-    }
-    
     func loadData() {
         loadSchedules()
         loadLogs()
         loadWhitelist()
-        loadSettings()
     }
     
     // MARK: - Schedule Management
@@ -248,16 +234,6 @@ class AppModel: ObservableObject {
         return whitelistedApps.contains(bundleId)
     }
     
-    // MARK: - Settings
-    func togglePause() {
-        isPaused.toggle()
-        saveSettings()
-    }
-    
-    func toggleNotifications() {
-        showNotifications.toggle()
-        saveSettings()
-    }
 }
 
 // MARK: - Running App Info

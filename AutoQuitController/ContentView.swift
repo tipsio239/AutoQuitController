@@ -19,32 +19,22 @@ struct ContentView: View {
             VStack(spacing: 0) {
                 // Status bar
                 HStack(spacing: 12) {
-                    HStack(spacing: 12) {
-                        Circle()
-                            .fill(appModel.isPaused ? Color.orange : Color.green)
-                            .frame(width: 10, height: 10)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Scheduler Status")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(.primary)
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(appModel.isPaused ? "Paused" : "Active")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundColor(.primary)
-
-                            if !appModel.isPaused {
-                                Text("\(appModel.schedules.filter { $0.isEnabled }.count) active schedule\(appModel.schedules.filter { $0.isEnabled }.count == 1 ? "" : "s")")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
+                        let activeCount = appModel.schedules.filter { $0.isEnabled }.count
+                        Text("\(activeCount) active schedule\(activeCount == 1 ? "" : "s")")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
 
                     Spacer()
 
-                    Button(action: { appModel.togglePause() }) {
-                        Label(appModel.isPaused ? "Resume" : "Pause", systemImage: appModel.isPaused ? "play.fill" : "pause.fill")
-                            .frame(minWidth: 110)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.accentColor)
+                    Label("\(appModel.whitelistedApps.count) whitelisted app\(appModel.whitelistedApps.count == 1 ? "" : "s")", systemImage: "shield")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
@@ -69,7 +59,7 @@ struct ContentView: View {
                     SettingsView()
                         .environmentObject(appModel)
                         .tabItem {
-                            Label("Settings", systemImage: "gearshape")
+                            Label("Logs", systemImage: "list.bullet.rectangle")
                         }
                         .tag(2)
                 }

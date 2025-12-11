@@ -34,12 +34,6 @@ class ScheduleService: ObservableObject {
                 self?.restartScheduler()
             }
             .store(in: &cancellables)
-        
-        appModel.$isPaused
-            .sink { [weak self] _ in
-                self?.restartScheduler()
-            }
-            .store(in: &cancellables)
     }
     
     // MARK: - Notification Permission
@@ -144,9 +138,7 @@ class ScheduleService: ObservableObject {
         )
         
         // Send notification
-        if appModel.showNotifications {
-            sendQuitNotification(appName: schedule.appName, success: success)
-        }
+        sendQuitNotification(appName: schedule.appName, success: success)
 
         if schedule.lockScreen {
             triggerLockScreen()
@@ -203,7 +195,6 @@ class ScheduleService: ObservableObject {
     // MARK: - Notifications
     private func sendWarning(schedule: AppSchedule) {
         guard let appModel = appModel else { return }
-        guard appModel.showNotifications else { return }
         
         let content = UNMutableNotificationContent()
         content.title = "App Quit Warning"
@@ -239,39 +230,33 @@ class ScheduleService: ObservableObject {
         guard let appModel = appModel else { return }
 
         guard quitSuccess else {
-            if appModel.showNotifications {
-                sendShutdownNotification(
-                    title: "Shutdown Cancelled",
-                    message: "Could not quit \(schedule.appName); shutdown will not proceed."
-                )
-            }
+            sendShutdownNotification(
+                title: "Shutdown Cancelled",
+                message: "Could not quit \(schedule.appName); shutdown will not proceed."
+            )
             return
         }
 
         guard hasShutdownPrivileges() else {
-            if appModel.showNotifications {
-                sendShutdownNotification(
-                    title: "Shutdown Requires Permission",
-                    message: "AutoQuitController needs administrator privileges to shut down the computer."
-                )
-            }
+            sendShutdownNotification(
+                title: "Shutdown Requires Permission",
+                message: "AutoQuitController needs administrator privileges to shut down the computer."
+            )
             return
         }
 
         let shutdownSucceeded = requestSystemShutdown(reason: "AutoQuitController schedule for \(schedule.appName)")
 
-        if appModel.showNotifications {
-            if shutdownSucceeded {
-                sendShutdownNotification(
-                    title: "Shutdown Initiated",
-                    message: "The system is shutting down after quitting \(schedule.appName)."
-                )
-            } else {
-                sendShutdownNotification(
-                    title: "Shutdown Failed",
-                    message: "Failed to request system shutdown after quitting \(schedule.appName)."
-                )
-            }
+        if shutdownSucceeded {
+            sendShutdownNotification(
+                title: "Shutdown Initiated",
+                message: "The system is shutting down after quitting \(schedule.appName)."
+            )
+        } else {
+            sendShutdownNotification(
+                title: "Shutdown Failed",
+                message: "Failed to request system shutdown after quitting \(schedule.appName)."
+            )
         }
     }
 
